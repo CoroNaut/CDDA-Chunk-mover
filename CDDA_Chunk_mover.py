@@ -337,17 +337,6 @@ def convertCoordTo32(coordinate):
 
 
 if __name__ == "__main__":
-    # coordinate = [0, 0, 8, 0, 10]
-    # print("\n")
-    # print(convertCoordToThree(coordinate))
-    # print(convertCoordTo32(coordinate))
-
-    # mapFile = getMapFileFromCoordinate(
-    #    r"C:\Users\Yijisyjik\Downloads\Games\cdda-windows-tiles-sounds-x64-2024-06-25-2220\save\testingCDDAMover",
-    #    [0, 0, 8, 0, 10],
-    # )
-    # print(mapFile)
-    # readMapFile(mapFile)
     main()
 
 
