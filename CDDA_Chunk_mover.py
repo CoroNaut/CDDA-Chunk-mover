@@ -14,8 +14,7 @@ def main():
     save_sav_list = []
 
     while savedir == None:
-        # savedir = input("1. Enter full path to CDDA save directory: ")
-        savedir = r"C:\Users\Yijisyjik\Downloads\Games\cdda-windows-tiles-sounds-x64-2024-06-25-2220\save"
+        savedir = input("1. Enter full path to CDDA save directory: ")
         print("\n")
 
         save_dir_List = getDirs(savedir)
