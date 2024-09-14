@@ -3,31 +3,89 @@ import os
 import json
 import math
 
-
 def main():
     print("\nWelcome to CDDA Chunk mover")
-    print("There is a 5 step process")
+    menu_options = {
+        1: "Change save location",
+        2: "Change map 1",
+        3: "Change map 2",
+        4: "Change coordinates 1",
+        5: "Change coordinates 2",
+        6: "Apply overmap tile copy/paste",
+        7: "Apply player copy/paste"
+    }
+    menu_funcs = {
+        1: menu_save_location,
+        2: menu_change_map,
+        3: menu_change_map,
+        4: menu_change_coordinates,
+        5: menu_change_coordinates,
+        6: menu_apply_tile_copy,
+        7: menu_apply_player_copy
+    }
+    menu_data = {
+        1: None,
+        2: None,
+        3: None,
+        4: None,
+        5: None,
+        6: None,
+        7: None
+    }
 
+    while True:
+        os.system("cls" if os.name == "nt" else "clear")
+        print("\nMain Menu:")
+        for i, option in enumerate(menu_options.values(), 1):
+            if i == 1:
+                print(f"{i}. {option}: {f"Found {len(menu_data[i])} valid worlds" if menu_data[i] else ""}")
+            elif (i == 2 or i == 3) and menu_data[1]:
+                print(f"{i}. {option}: {str(os.path.basename(menu_data[i])) if menu_data[i] else ""}")
+            elif (i == 4 or i == 5) and menu_data[1]:
+                print(f"{i}. {option}: {menu_data[i] if menu_data[i] else ""}")
+            elif i == 6 and menu_data[2] and menu_data[3] and menu_data[4] and menu_data[5] and (menu_data[4] != menu_data[5]):
+                print(f"{i}. {option} {(": "+menu_data[i]) if menu_data[i] else ""}")
+            elif i == 7 and menu_data[2] and menu_data[3] and (menu_data[2] != menu_data[3]):
+                print(f"{i}. {option} {(": "+menu_data[i]) if menu_data[i] else ""}")
+
+        choice = input("Enter your choice: ")
+
+        if choice.isdigit() and 1 <= int(choice) <= len(menu_data):
+            choice = int(choice)
+            if choice == 1:
+                menu_data[choice] = menu_funcs[choice]()
+            elif (choice == 2 or choice == 3) and menu_data[1]:
+                menu_data[choice] = menu_funcs[choice](menu_data[1])
+                menu_data[6] = None
+                menu_data[7] = None
+            elif (choice == 4 or choice == 5) and menu_data[1]:
+                print(f"{i}. {option}: {menu_data[i] if menu_data[i] else ""}")
+            elif choice == 6 and menu_data[2] and menu_data[3] and menu_data[4] and menu_data[5] and (menu_data[4] != menu_data[5]):
+                if not menu_data[choice]:
+                    menu_data[choice] = menu_funcs[choice](menu_data)
+            elif choice == 7 and menu_data[2] and menu_data[3] and (menu_data[2] != menu_data[3]):
+                if not menu_data[choice]:
+                    menu_data[choice] = menu_funcs[choice](menu_data)
+
+
+def menu_save_location():
     savedir = None
-    save_dir_List = []
+    save_dir_list = []
     save_sav_list = []
 
     while savedir == None:
-        savedir = input("1. Enter full path to CDDA save directory: ")
-        print("\n")
+        savedir = input("Enter full path to CDDA save directory: ")
 
-        save_dir_List = getDirs(savedir)
-        if len(save_dir_List) == 0:
-            print("Path doesn't have any saves")
+        save_dir_list = getDirs(savedir)
+        if len(save_dir_list) == 0:
             continue
 
-        # get list of .sav files and store into saveList
-        for dir in save_dir_List:
+        # get list of .sav files and store into save_sav_list
+        for dir in save_dir_list:
             sav_file = getSave(dir)
 
             if not sav_file:
-                print("No save file found in: ", os.path.basename(dir))
-                save_dir_List.remove(dir)
+                save_dir_list.remove(dir)
             else:
                 save_sav_list.append(os.path.basename(dir))
 
@@ -35,188 +93,35 @@ def main():
         if len(save_sav_list) < 1:
             print("No saves found in save folder")
             savedir = None
-            save_dir_List = []
+            save_dir_list = []
             save_sav_list = []
             continue
-
-    selected = False
-    print("2. Select save directories to copy from and copy to")
-    while not selected:
-        # Print index and world name for user to select
-        printList(save_dir_List)
-
-        # Allow user to select their world to copy from
-        selection = getNumberSelection(save_dir_List, 0)
-        dir_from_to = [save_dir_List[selection]]
-
-        # Allow user to select their world to copy to
-        printList(save_dir_List)
-        selection = getNumberSelection(save_dir_List, 1)
-        dir_from_to.append(save_dir_List[selection])
-
-        str = "Are you sure these are correct? {} copied to {}?".format(
-            os.path.basename(dir_from_to[0]), os.path.basename(dir_from_to[1])
-        )
-        selection = getYNSelection(str)
-        selected = selection
-
-    print("\n3. Select overmap tiles to move\n")
-    print("Please enter a coordinate to copy from")
-    print('Enter coordinates in the form: "LEVEL, XCOORD1, XCOORD2, YCOORD1, YCOORD2"')
-    print('Include ","\'s')
-    print('Example"0,-1,2,-3,4"')
-    print('Please type "n" to close\n')
-
-    coordinate_fuples = []
-    while True:
-        while True:
-            selection = getCDDAOvermapCoordSelection(
-                "please select overmap coordinate to copy from in 1st map:"
-            )
-            if selection:
-                print(selection)
-                answer = getYNSelection("Is this correct?")
-                if answer:
-                    coordinate_fuples.append(selection)
-                    break
-                continue
-            else:
-                print("Coordinates not entered, closing...")
-                return
-
-        while True:
-            selection = getCDDAOvermapCoordSelection(
-                "4. Select overmap coordinate to replace in 2nd map:"
-            )
-            if selection:
-                print(selection)
-                answer = getYNSelection("Is this correct?")
-                if answer:
-                    coordinate_fuples.append(selection)
-                    break
-                continue
-            else:
-                print("Coordinates not entered, closing...")
-                return
-
-        fuples_equal = True
-        for i in range(5):
-            if coordinate_fuples[0][i] != coordinate_fuples[1][i]:
-                fuples_equal = False
-                break
-
-        if fuples_equal:
-            print("Coordinates cannot be equal, please retry")
-            continue
-
-        break
-
-    print("Apply this copy/paste?")
-    str = "copy {} from {} to {} in {}?".format(
-        coordinate_fuples[0],
-        os.path.basename(dir_from_to[0]),
-        coordinate_fuples[1],
-        os.path.basename(dir_from_to[1]),
-    )
-    selection = getYNSelection(str)
-    if not selection:
-        return
-
-    print("copying map file...")
-    from_map_file = getMapFileFromCoordinate(dir_from_to[0], coordinate_fuples[0])
-    to_map_file = getMapFileFromCoordinate(dir_from_to[1], coordinate_fuples[1])
-
-    print(dir_from_to[0])
-    print(to_map_file)
-
-    try:
-        from_data = readMapFile(from_map_file)
-        if not from_data:
-            raise Exception("Error reading from 1st save file")
-
-        to_data = readMapFile(to_map_file)
-        if not to_data:
-            raise Exception("Error reading from 2nd save file")
-
-        for i in range(4):
-            from_data[i]["coordinates"] = to_data[i]["coordinates"]
-            from_data[i]["turn_last_touched"] = to_data[i]["turn_last_touched"]
-            from_data[i]["temperature"] = to_data[i]["temperature"]
-
-        writeMapFile(to_map_file, from_data)
-        print("The coordinates have been copied successfully")
-    except Exception as e:
-        if hasattr(e, "message"):
-            print(e.message)
         else:
-            print(e)
-
-    return
-
-
-# get directories in the save folder
-def getDirs(save_path):
-    save_dirs = []
-    for folder in os.listdir(save_path):
-        d = os.path.join(save_path, folder)
-        if os.path.isdir(d):
-            save_dirs.append(d)
-
-    # Check if there are even any save files here
-    if len(save_dirs) == 0:
-        return []
-    return save_dirs
-
-
-# check if we have the save file for this directory0
-def getSave(save_directory):
-    for file in os.listdir(save_directory):
-        f = os.path.join(save_directory, file)
-
-        if os.path.isfile(f) and f.endswith(".sav"):
-            return f
+            return save_dir_list
     return None
 
+def menu_change_map(save_dir_list):
+    selected = False
+    print("\nSelect world directory: ")
 
-def printList(save_list):
-    for index, dir in enumerate(save_list):
-        print("{}. World: {}".format(index, os.path.basename(dir)))
+    # Print index and world name for user to select
+    for index, dir in enumerate(save_dir_list):
+        print("{}. World: {}".format(index+1, os.path.basename(dir)))
 
+    # Allow user to select their world to copy from
+    choice = input("Enter your choice: ")
 
-def getNumberSelection(save_dir_List, move):
+    if choice.isdigit() and 1 <= int(choice) <= len(save_dir_list):
+        return save_dir_list[int(choice)-1]
+
+    return None
+
+def menu_change_coordinates():
+    print("Please enter a coordinates and include ',''s")
+    print('Enter coordinates in the form: "LEVEL, XCOORD1, XCOORD2, YCOORD1, YCOORD2"')
+    print('Example: "0,1,150,-1,25"')
     while True:
-        str = f"Please type the number of the world to copy {'to' if move == 1 else 'from'}: "
-        selection = input(str)
-        if not selection.isnumeric():
-            print("Not a number")
-            selection = None
-            continue
-
-        selection = int(selection)
-        if selection < 0 or selection > (len(save_dir_List) - 1):
-            print("Number not in bounds")
-            selection = None
-            continue
-        return selection
-
-
-def getYNSelection(strInputQuestion):
-    while True:
-        selection = input(strInputQuestion + " (Y/N): ")
-        selection = selection.lower()
-        if selection == "y" or selection == "n":
-            return True if selection == "y" else False
-        print("Not (Y/N)")
-        selection = None
-
-
-def getCDDAOvermapCoordSelection(str):
-    while True:
-        if str:
-            print(str)
         selection = input("Enter coords: ")
-        if selection == "n":
-            return None
 
         selection = selection.split(",")
 
@@ -242,9 +147,126 @@ def getCDDAOvermapCoordSelection(str):
 
         if retry:
             continue
-
         return selection
 
+def menu_apply_player_copy(menu_data):
+    from_sav_file = getSave(menu_data[2])
+    to_sav_file = getSave(menu_data[3])
+
+    try:
+        from_data = readFileJson(from_sav_file, True)
+        if not from_data:
+            raise Exception("Error reading from 1st save file")
+
+        to_data = readFileJson(to_sav_file, True)
+        if not to_data:
+            raise Exception("Error reading from 2nd save file")
+        # copy everything about the player except these values:
+        # make sure these values are copied to ensure consistency when player is copied over
+        # All values except these are copied to the new world in the player .sav file
+        data = [
+            "turn",
+            "calendar_start",
+            "game_start",
+            "initial_season",
+            "levx",
+            "levy",
+            "levz",
+            "om_x",
+            "om_y",
+            "grscent",
+            "inactive_global_effect_on_condition_vector",
+            "global_vals",
+        ]
+        for i in range(len(data)):
+            from_data[data[i]] = to_data[data[i]]
+        playerData = [
+            "location",
+            "moves",
+            "grab_point",
+            "grab_type",
+            "translocators",
+            "active_mission",
+            "active_missions",
+            "completed_missions",
+            "failed_missions",
+        ]
+        for i in range(len(playerData)):
+            from_data["player"][playerData[i]] = to_data["player"][playerData[i]]
+    
+        writeFile(to_sav_file, from_data)
+    except Exception as e:
+        if hasattr(e, "message"):
+            return e.message
+        else:
+            print(e)
+            return "Error"
+
+    return "Applied successfully"
+
+def menu_apply_tile_copy(menu_data):
+    from_map_file = getMapFileFromCoordinate(menu_data[2], menu_data[4])
+    to_map_file = getMapFileFromCoordinate(menu_data[3], menu_data[5])
+
+    try:
+        from_data = readFileJson(from_map_file, False)
+        if not from_data:
+            raise Exception("Error reading from 1st save file")
+
+        to_data = readFileJson(to_map_file, False)
+        if not to_data:
+            raise Exception("Error reading from 2nd save file")
+
+        for i in range(4):
+            from_data[i]["coordinates"] = to_data[i]["coordinates"]
+            from_data[i]["turn_last_touched"] = to_data[i]["turn_last_touched"]
+            from_data[i]["temperature"] = to_data[i]["temperature"]
+
+        writeFile(to_map_file, from_data)
+    except Exception as e:
+        if hasattr(e, "message"):
+            return e.message
+        else:
+            return e
+
+    return "Applied successfully"
+
+# get directories in the save folder
+def getDirs(save_path):
+    save_dirs = []
+    for folder in os.listdir(save_path):
+        d = os.path.join(save_path, folder)
+        if os.path.isdir(d):
+            save_dirs.append(d)
+
+    # Check if there are even any save files here
+    if len(save_dirs) == 0:
+        return []
+    return save_dirs
+
+
+# check if we have the save file for this directory0
+def getSave(save_directory):
+    for file in os.listdir(save_directory):
+        f = os.path.join(save_directory, file)
+
+        if os.path.isfile(f) and f.endswith(".sav"):
+            return f
+    return None
+
+def getNumberSelection(save_dir_List, max):
+    while True:
+        selection = input(str)
+        if not selection.isdigit():
+            print("Must be positive number in range")
+            selection = None
+            continue
+
+        selection = int(selection)
+        if 0 < selection < max:
+            return selection
+        
+        print("Number not in bounds")
 
 def check_number(num):
     while True:
@@ -255,30 +277,32 @@ def check_number(num):
             return False
 
 
-def readMapFile(mapFile):
+def readFileJson(mapFile, nextLine):
     try:
         with open(mapFile, "r", encoding="utf8") as file:
+            if nextLine:
+                next(file)
             data = json.load(file)
             return data
 
     except FileNotFoundError:
-        print("Map file not found...")
+        # print("Map file not found...")
         return None
 
     except json.JSONDecodeError:
-        print("JSON didn't decode correctly")
+        # print("JSON didn't decode correctly")
         return None
 
     except Exception as e:
         if hasattr(e, "message"):
-            print(e.message)
+            return None
         else:
-            print(e)
+            return None
 
     return None
 
 
-def writeMapFile(mapFile, data):
+def writeFile(mapFile, data):
     try:
         with open(mapFile, "w") as file:
             json.dump(data, file)
