@@ -5,7 +5,6 @@ import math
 
 
 def main():
-
     print("\nWelcome to CDDA Chunk mover")
     print("There is a 5 step process")
 
@@ -63,17 +62,17 @@ def main():
 
     print("\n3. Select overmap tiles to move\n")
     print("Please enter a coordinate to copy from")
-    print('Enter coordinates in the form: "LEVEL, XCOORD, YCORD"')
-    print('Include ","\'s and type XCOORD and YCOORD with "\'"\'s')
-    print("as the coordinates in-game look like.")
-    print("Example\"0,-1'2,-3'4\"")
+    print('Enter coordinates in the form: "LEVEL, XCOORD1, XCOORD2, YCOORD1, YCOORD2"')
+    print('Include ","\'s')
+    print('Example"0,-1,2,-3,4"')
     print('Please type "n" to close\n')
 
     coordinate_fuples = []
     while True:
-        print("please select overmap coordinate to copy from in 1st map:")
         while True:
-            selection = getCDDAOvermapCoordSelection()
+            selection = getCDDAOvermapCoordSelection(
+                "please select overmap coordinate to copy from in 1st map:"
+            )
             if selection:
                 print(selection)
                 answer = getYNSelection("Is this correct?")
@@ -85,9 +84,10 @@ def main():
                 print("Coordinates not entered, closing...")
                 return
 
-        print("4. Select overmap coordinate to replace in 2nd map:")
         while True:
-            selection = getCDDAOvermapCoordSelection()
+            selection = getCDDAOvermapCoordSelection(
+                "4. Select overmap coordinate to replace in 2nd map:"
+            )
             if selection:
                 print(selection)
                 answer = getYNSelection("Is this correct?")
@@ -126,14 +126,17 @@ def main():
     from_map_file = getMapFileFromCoordinate(dir_from_to[0], coordinate_fuples[0])
     to_map_file = getMapFileFromCoordinate(dir_from_to[1], coordinate_fuples[1])
 
+    print(dir_from_to[0])
+    print(to_map_file)
+
     try:
         from_data = readMapFile(from_map_file)
         if not from_data:
-            print("Error reading from 1st save file")
+            raise Exception("Error reading from 1st save file")
 
         to_data = readMapFile(to_map_file)
         if not to_data:
-            print("Error reading from 2nd save file")
+            raise Exception("Error reading from 2nd save file")
 
         for i in range(4):
             from_data[i]["coordinates"] = to_data[i]["coordinates"]
@@ -141,10 +144,13 @@ def main():
             from_data[i]["temperature"] = to_data[i]["temperature"]
 
         writeMapFile(to_map_file, from_data)
-    except Exception:
-        print("File data not copied correctly")
+        print("The coordinates have been copied successfully")
+    except Exception as e:
+        if hasattr(e, "message"):
+            print(e.message)
+        else:
+            print(e)
 
-    print("The coordinates have been copied successfully")
     return
 
 
@@ -204,43 +210,40 @@ def getYNSelection(strInputQuestion):
         selection = None
 
 
-def getCDDAOvermapCoordSelection():
+def getCDDAOvermapCoordSelection(str):
     while True:
+        if str:
+            print(str)
         selection = input("Enter coords: ")
         if selection == "n":
             return None
 
         selection = selection.split(",")
 
-        if not check_number(selection[0]):
-            print("LEVEL not a integer")
-            continue
-        selection[0] = int(selection[0])
-        if selection[0] < -10 or selection[0] > 10:
-            print("level needs to be -10 < LEVEL < 10...")
+        retry = False
+        for i in range(5):
+            if not check_number(selection[i]):
+                print("Value {} not an integer".format(i))
+                retry = True
+                break
+            selection[i] = int(selection[i])
+
+            if i == 2 or i == 4:
+                if selection[i] < 0 or selection[i] >= 180:
+                    print("Value {} not in bound [0,179]".format(i))
+                    retry = True
+                    break
+
+            if i == 0:
+                if selection[0] < -10 or selection[0] > 10:
+                    print("Value {} not in bound [-10,10]".format(i))
+                    retry = True
+                    break
+
+        if retry:
             continue
 
-        xcoord = selection[1].split("'")
-        xcoord[0] = int(xcoord[0])
-        xcoord[1] = int(xcoord[1])
-        if not check_number(xcoord[0]) or not check_number(xcoord[1]):
-            print("XCOORD are not both integers")
-            continue
-        if xcoord[1] < 0 or xcoord[1] >= 180:
-            print("2nd XCOORD not in range [0, 179]")
-            continue
-
-        ycoord = selection[2].split("'")
-        ycoord[0] = int(ycoord[0])
-        ycoord[1] = int(ycoord[1])
-        if not check_number(ycoord[0]) or not check_number(ycoord[1]):
-            print("YCOORD are not both integers")
-            continue
-        if ycoord[1] < 0 or ycoord[1] >= 180:
-            print("2nd YCOORD not in range [0, 179]")
-            continue
-
-        return [selection[0], xcoord[0], xcoord[1], ycoord[0], ycoord[1]]
+        return selection
 
 
 def check_number(num):
@@ -254,7 +257,7 @@ def check_number(num):
 
 def readMapFile(mapFile):
     try:
-        with open(mapFile, "r") as file:
+        with open(mapFile, "r", encoding="utf8") as file:
             data = json.load(file)
             return data
 
@@ -266,9 +269,11 @@ def readMapFile(mapFile):
         print("JSON didn't decode correctly")
         return None
 
-    except Exception:
-        print("Generic exception")
-        return None
+    except Exception as e:
+        if hasattr(e, "message"):
+            print(e.message)
+        else:
+            print(e)
 
     return None
 
@@ -326,12 +331,12 @@ def convertCoordTo32(coordinate):
     if threeCoord[0] >= 0:
         threeCoord[0] = math.floor(threeCoord[0] / 32)
     else:
-        threeCoord[0] = -math.floor(abs(threeCoord[0]) / 32)
+        threeCoord[0] = (-math.floor(abs(threeCoord[0]) / 32)) - 1
 
     if threeCoord[1] >= 0:
         threeCoord[1] = math.floor(threeCoord[1] / 32)
     else:
-        threeCoord[1] = -math.floor(abs(threeCoord[1]) / 32)
+        threeCoord[1] = (-math.floor(abs(threeCoord[1]) / 32)) - 1
 
     return [threeCoord[0], threeCoord[1], threeCoord[2]]
 
