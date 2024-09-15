@@ -77,7 +77,7 @@ def menu_save_location():
         savedir = input("Enter full path to CDDA save directory: ")
 
         save_dir_list = getDirs(savedir)
-        if len(save_dir_list) == 0:
+        if not save_dir_list or len(save_dir_list) == 0:
             continue
 
         # get list of .sav files and store into save_sav_list
@@ -193,16 +193,27 @@ def menu_apply_player_copy(menu_data):
         ]
         for i in range(len(playerData)):
             from_data["player"][playerData[i]] = to_data["player"][playerData[i]]
-    
+
+        from_diary_file = getDiaryFile(menu_data[2], from_sav_file)
+        if not from_diary_file:
+            return "Diary file not found"
+        from_diary_data = readFileJson(from_diary_file, False)
+        if not from_diary_data:
+            return "Diary data couldn't load"
+        to_diary_file = getDiaryFile(menu_data[3], to_sav_file)
+        if not to_diary_file:
+            return "Diary file map 2 not found"
+        
+        writeFile(to_diary_file, from_diary_data)
         writeFile(to_sav_file, from_data)
+        return "Applied successfully"
     except Exception as e:
         if hasattr(e, "message"):
             return e.message
         else:
-            print(e)
-            return "Error"
+            return str(e)
 
-    return "Applied successfully"
+    return "Error"
 
 def menu_apply_tile_copy(menu_data):
     from_map_file = getMapFileFromCoordinate(menu_data[2], menu_data[4])
@@ -227,12 +238,37 @@ def menu_apply_tile_copy(menu_data):
         if hasattr(e, "message"):
             return e.message
         else:
-            return e
+            return str(e)
 
     return "Applied successfully"
 
+def getDiaryFile(save_path, save_file):
+    files = [f for f in os.listdir(save_path) if os.path.isfile(os.path.join(save_path, f))]
+    files = [f for f in files if os.path.splitext(f)[1] == ".json"]
+    for file in files:
+        peek_data = peekFileAtPos(os.path.join(save_path,file),2)
+        if peek_data and "\"owner\": \"" in peek_data:
+            return os.path.join(save_path,file)
+    return None
+
+def peekFileAtPos(file, line_number):
+    try:
+        with open(file, "r", encoding="utf8") as file:
+            file.seek(line_number)
+            return file.readline()
+
+    except FileNotFoundError:
+        # print(f"File '{file}' not found.")
+        return None
+    except IOError:
+        # print(f"Error reading file '{file}'.")
+        return None
+    return None
+
 # get directories in the save folder
 def getDirs(save_path):
+    if(not os.path.exists(save_path)):
+        return None
     save_dirs = []
     for folder in os.listdir(save_path):
         d = os.path.join(save_path, folder)

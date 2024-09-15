@@ -16,6 +16,7 @@ If you want to copy an overmap chunk...
 If you want to copy a player save file...
 1. Enter the two worlds you want to transfer from and to.
 2. The option to move your player will appear
+3. The diary of your copied character will be moved as well
 
 All done! The terminal menu should make it easy to copy multiple chunks or players to other worlds.
 
@@ -25,5 +26,4 @@ All done! The terminal menu should make it easy to copy multiple chunks or playe
 ## Features to Implement:
 
 1. Precise control of what is copied for the player transfer
-2. Transfer diary along with character (#RmVsYW55YV9kaWFyeQ==.json)
-3. Transfer favotire recipes along with character (uistate.json)
+2. Transfer favotire recipes along with character (uistate.json)
