@@ -25,3 +25,5 @@ All done! The terminal menu should make it easy to copy multiple chunks or playe
 ## Features to Implement:
 
 1. Precise control of what is copied for the player transfer
+2. Transfer diary along with character (#RmVsYW55YV9kaWFyeQ==.json)
+3. Transfer favotire recipes along with character (uistate.json)
