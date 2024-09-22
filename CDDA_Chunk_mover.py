@@ -12,7 +12,8 @@ def main():
         4: "Change coordinates 1",
         5: "Change coordinates 2",
         6: "Apply overmap tile copy/paste",
-        7: "Apply player copy/paste"
+        7: "Apply player copy/paste",
+        8: "Exit"
     }
     menu_funcs = {
         1: menu_save_location,
@@ -30,10 +31,17 @@ def main():
         4: None,
         5: None,
         6: None,
-        7: None
+        7: None,
+        8: None
     }
 
+
     while True:
+        if menu_data[1] and not menu_data[8]:
+            menu_data[8] = get_json_formatter_file(menu_data[1])
+            if not menu_data[8]:
+                print("\"json_formatter\" not found in base directory. Can't format copied files")
+                return True
         os.system("cls" if os.name == "nt" else "clear")
         print("\nMain Menu:")
         for i, option in enumerate(menu_options.values(), 1):
@@ -47,6 +55,8 @@ def main():
                 print(f"{i}. {option} {(": "+menu_data[i]) if menu_data[i] else ""}")
             elif i == 7 and menu_data[2] and menu_data[3] and (menu_data[2] != menu_data[3]):
                 print(f"{i}. {option} {(": "+menu_data[i]) if menu_data[i] else ""}")
+            elif i == 8:
+                print(f"{i}. {option}")
 
         choice = input("Enter your choice: ")
 
@@ -66,7 +76,9 @@ def main():
             elif choice == 7 and menu_data[2] and menu_data[3] and (menu_data[2] != menu_data[3]):
                 if not menu_data[choice]:
                     menu_data[choice] = menu_funcs[choice](menu_data)
-
+            elif choice == 8:
+                print("Goodbye!")
+                os._exit(0)
 
 def menu_save_location():
     savedir = None
@@ -151,18 +163,26 @@ def menu_change_coordinates():
 
 def menu_apply_player_copy(menu_data):
     from_sav_file = getSave(menu_data[2])
+    if not formatFile(menu_data[8], from_sav_file):
+        return "Formatting first .sav file failed"
+    
     to_sav_file = getSave(menu_data[3])
-
+    if not formatFile(menu_data[8], from_sav_file):
+        return "Formatting second .sav file failed"
+    
     try:
-        from_data = readFileJson(from_sav_file, True)
+        from_data, from_version = readFileJson(from_sav_file, True)
         if not from_data:
             raise Exception("Error reading from 1st save file")
 
-        to_data = readFileJson(to_sav_file, True)
+        to_data, to_version = readFileJson(to_sav_file, True)
         if not to_data:
             raise Exception("Error reading from 2nd save file")
+        
+        if from_version != to_version:
+            raise Exception("Version mixmatch between .sav files. Override by manually setting them equal")
         # copy everything about the player except these values:
-        # make sure these values are copied to ensure consistency when player is copied over
+        # make sure these values are not copied to ensure consistency when player is copied over
         # All values except these are copied to the new world in the player .sav file
         data = [
             "turn",
@@ -194,18 +214,34 @@ def menu_apply_player_copy(menu_data):
         for i in range(len(playerData)):
             from_data["player"][playerData[i]] = to_data["player"][playerData[i]]
 
-        from_diary_file = getDiaryFile(menu_data[2], from_sav_file)
-        if not from_diary_file:
-            return "Diary file not found"
-        from_diary_data = readFileJson(from_diary_file, False)
+        from_diary_file = getDiaryFile(menu_data[2])
+
+        from_diary_data, _ = readFileJson(from_diary_file)
         if not from_diary_data:
-            return "Diary data couldn't load"
-        to_diary_file = getDiaryFile(menu_data[3], to_sav_file)
-        if not to_diary_file:
-            return "Diary file map 2 not found"
+            return "Loading diary data failed"
+        to_diary_file = getDiaryFile(menu_data[3])
         
-        writeFile(to_diary_file, from_diary_data)
-        writeFile(to_sav_file, from_data)
+        from_uistate_file = getUIStateFile(menu_data[2])
+        from_uistate_data, _ = readFileJson(from_uistate_file)
+        to_uistate_file = getUIStateFile(menu_data[3])
+        
+        if not writeFile(to_uistate_file, from_uistate_data):
+            return "Writing uistate file failed"
+        if not formatFile(menu_data[8], to_uistate_file):
+            return "Formatting uistate file after writing failed"
+        
+        if to_diary_file and from_diary_file and from_diary_data:
+            if not writeFile(to_diary_file, from_diary_data):
+                return "Writing diary file failed"
+            if not formatFile(menu_data[8], to_diary_file):
+                return "Formatting diary file after writing failed"
+        elif not from_diary_file and to_diary_file:
+            os.remove(to_diary_file)
+
+        if not writeFile(to_sav_file, from_data, from_version):
+            return "Writing diary file failed"
+        if not formatFile(menu_data[8], to_sav_file):
+            return "Formatting diary file after writing failed"
         return "Applied successfully"
     except Exception as e:
         if hasattr(e, "message"):
@@ -215,16 +251,23 @@ def menu_apply_player_copy(menu_data):
 
     return "Error"
 
+
+
 def menu_apply_tile_copy(menu_data):
     from_map_file = getMapFileFromCoordinate(menu_data[2], menu_data[4])
+    if not formatFile(menu_data[8], from_map_file):
+        return "Formatting first map file failed"
+    
     to_map_file = getMapFileFromCoordinate(menu_data[3], menu_data[5])
+    if not formatFile(menu_data[8], to_map_file):
+        return "Formatting second map file failed"
 
     try:
-        from_data = readFileJson(from_map_file, False)
+        from_data, _ = readFileJson(from_map_file, False)
         if not from_data:
             raise Exception("Error reading from 1st save file")
 
-        to_data = readFileJson(to_map_file, False)
+        to_data, _ = readFileJson(to_map_file, False)
         if not to_data:
             raise Exception("Error reading from 2nd save file")
 
@@ -233,7 +276,11 @@ def menu_apply_tile_copy(menu_data):
             from_data[i]["turn_last_touched"] = to_data[i]["turn_last_touched"]
             from_data[i]["temperature"] = to_data[i]["temperature"]
 
-        writeFile(to_map_file, from_data)
+        
+        if not writeFile(to_map_file, from_data):
+            return "Writing map file failed"
+        if not formatFile(menu_data[8], to_map_file):
+            return "Formatting second map file after writing failed"
     except Exception as e:
         if hasattr(e, "message"):
             return e.message
@@ -242,7 +289,34 @@ def menu_apply_tile_copy(menu_data):
 
     return "Applied successfully"
 
-def getDiaryFile(save_path, save_file):
+def formatFile(json_formatter, file_to_format):
+    command = f"{json_formatter} {file_to_format}"
+    try:
+        os.system(command)
+        return True
+    except Exception as e:
+        if hasattr(e, "message"):
+            return e.message
+        else:
+            return str(e)
+    return None
+
+def get_json_formatter_file(save_path):
+    if not save_path:
+        return None
+    json_formatter_file = os.path.dirname(os.path.dirname(save_path[0]))
+    json_formatter_file = os.path.join (json_formatter_file, "json_formatter.exe")
+    if os.path.isfile(json_formatter_file):
+        return json_formatter_file
+    return None
+
+def getUIStateFile(save_path):
+    file = os.path.join(save_path, "uistate.json")
+    if os.path.isfile(file):
+        return file
+    return None
+
+def getDiaryFile(save_path):
     files = [f for f in os.listdir(save_path) if os.path.isfile(os.path.join(save_path, f))]
     files = [f for f in files if os.path.splitext(f)[1] == ".json"]
     for file in files:
@@ -313,13 +387,16 @@ def check_number(num):
             return False
 
 
-def readFileJson(mapFile, nextLine):
+def readFileJson(jsonFile, collect_version=False):
     try:
-        with open(mapFile, "r", encoding="utf8") as file:
-            if nextLine:
-                next(file)
+        with open(jsonFile, "r", encoding="utf8") as file:
+            version = None
+            if collect_version:
+                version = file.readline()
+                data = json.load(file)
+                return data, version
             data = json.load(file)
-            return data
+            return data, None
 
     except FileNotFoundError:
         # print("Map file not found...")
@@ -338,9 +415,13 @@ def readFileJson(mapFile, nextLine):
     return None
 
 
-def writeFile(mapFile, data):
+def writeFile(writeFile, data, version = None):
+    if not writeFile or not data:
+        return None
     try:
-        with open(mapFile, "w") as file:
+        with open(writeFile, "w") as file:
+            if version:
+                file.writelines(version)
             json.dump(data, file)
             return True
 
