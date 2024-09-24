@@ -69,7 +69,7 @@ def main():
                 menu_data[6] = None
                 menu_data[7] = None
             elif (choice == 4 or choice == 5) and menu_data[1]:
-                print(f"{i}. {option}: {menu_data[i] if menu_data[i] else ""}")
+                menu_data[choice] = menu_funcs[choice]()
             elif choice == 6 and menu_data[2] and menu_data[3] and menu_data[4] and menu_data[5] and (menu_data[4] != menu_data[5]):
                 if not menu_data[choice]:
                     menu_data[choice] = menu_funcs[choice](menu_data)
@@ -248,10 +248,7 @@ def menu_apply_player_copy(menu_data):
             return e.message
         else:
             return str(e)
-
-    return "Error"
-
-
+    return "Error in player copy"
 
 def menu_apply_tile_copy(menu_data):
     from_map_file = getMapFileFromCoordinate(menu_data[2], menu_data[4])

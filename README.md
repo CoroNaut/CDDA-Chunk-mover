@@ -6,7 +6,7 @@ There is a simple menu system with error handling and should be fairly straightf
  2. Input your CDDA save file location
  3. The options will auto populate with what you can do
 
-## Copy overmap tiles from one map to another using python
+## Copy overmap tiles from one map to another
 If you want to copy an overmap chunk...
 1. fill in the world to copy from, and the world to copy to.
 2. Enter coordinates from in-game into the menu.
@@ -16,7 +16,7 @@ If you want to copy an overmap chunk...
 If you want to copy a player save file...
 1. Enter the two worlds you want to transfer from and to.
 2. The option to move your player will appear
-3. The diary of your copied character will be moved as well
+3. The diary and ui state of your copied character will be moved as well
 
 All done! The terminal menu should make it easy to copy multiple chunks or players to other worlds.
 
@@ -25,5 +25,7 @@ All done! The terminal menu should make it easy to copy multiple chunks or playe
 
 ## Features to Implement:
 
-1. Precise control of what is copied for the player transfer
-2. Transfer favorite recipes along with character (uistate.json)
+1. Precise custom control of what is copied for the player transfer?
+2. Make template from save file character
+
+Please leave an issue if you have a problem or suggestion!
